@@ -32,7 +32,7 @@ documents = load_documents()
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 texts = text_splitter.split_documents(documents)
 
-embeddings = OpenAIEmbeddings()
+embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 vectorstore = FAISS.from_documents(texts, embeddings)
 
 # Crear la cadena de preguntas y respuestas
