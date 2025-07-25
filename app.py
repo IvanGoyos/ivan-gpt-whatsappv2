@@ -3,8 +3,7 @@ from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
 from dotenv import load_dotenv
 from langchain.chains import RetrievalQA
-from langchain_openai import ChatOpenAI
-from langchain_openai import OpenAIEmbeddings
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
@@ -32,17 +31,18 @@ documents = load_documents()
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 texts = text_splitter.split_documents(documents)
 
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+# Crear embeddings SIN usar proxies (soluciona el error en Render)
+embeddings = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=os.getenv("OPENAI_API_KEY"))
 vectorstore = FAISS.from_documents(texts, embeddings)
 
 # Crear la cadena de preguntas y respuestas
 qa_chain = RetrievalQA.from_chain_type(
-    llm=ChatOpenAI(model_name="gpt-4o"),
+    llm=ChatOpenAI(model_name="gpt-4o", openai_api_key=os.getenv("OPENAI_API_KEY")),
     chain_type="stuff",
     retriever=vectorstore.as_retriever()
 )
 
-# Función para guardar la conversación en un archivo
+# Guardar conversación en archivo
 def guardar_conversacion(user_id, pregunta, respuesta):
     with open("conversaciones.txt", "a", encoding="utf-8") as f:
         f.write(f"Usuario: {user_id}\n")
@@ -58,17 +58,14 @@ def webhook():
     response = MessagingResponse()
     msg = response.message()
 
-    # Ejecutar la respuesta del modelo
     respuesta = qa_chain.run(incoming_msg)
-
-    # Guardar la conversación
     guardar_conversacion(user_id, incoming_msg, respuesta)
 
-    # Enviar la respuesta al usuario
     msg.body(respuesta)
     return str(response)
 
-# Arrancar la app
+# Arrancar servidor Flask
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
