@@ -14,7 +14,7 @@ load_dotenv()
 # Inicializar Flask
 app = Flask(__name__)
 
-# Cargar y procesar documentos
+# Cargar y procesar documentos PDF
 def load_documents():
     loaders = [
         PyPDFLoader("Biografia.pdf"),
@@ -27,22 +27,22 @@ def load_documents():
 
 documents = load_documents()
 
-# Dividir texto y crear vectorstore
+# Dividir documentos y generar embeddings
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 texts = text_splitter.split_documents(documents)
 
-# Crear embeddings SIN usar proxies (soluciona el error en Render)
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=os.getenv("OPENAI_API_KEY"))
+# ✅ Embeddings sin parámetros conflictivos
+embeddings = OpenAIEmbeddings()
 vectorstore = FAISS.from_documents(texts, embeddings)
 
-# Crear la cadena de preguntas y respuestas
+# Crear cadena QA con modelo de OpenAI
 qa_chain = RetrievalQA.from_chain_type(
-    llm=ChatOpenAI(model_name="gpt-4o", openai_api_key=os.getenv("OPENAI_API_KEY")),
+    llm=ChatOpenAI(model_name="gpt-4"),
     chain_type="stuff",
     retriever=vectorstore.as_retriever()
 )
 
-# Guardar conversación en archivo
+# Guardar conversación en archivo .txt
 def guardar_conversacion(user_id, pregunta, respuesta):
     with open("conversaciones.txt", "a", encoding="utf-8") as f:
         f.write(f"Usuario: {user_id}\n")
@@ -64,8 +64,7 @@ def webhook():
     msg.body(respuesta)
     return str(response)
 
-# Arrancar servidor Flask
+# Iniciar servidor Flask
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
