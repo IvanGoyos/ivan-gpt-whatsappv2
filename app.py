@@ -32,7 +32,7 @@ text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 texts = text_splitter.split_documents(documents)
 
 # ✅ Embeddings sin parámetros conflictivos
-embeddings = OpenAIEmbeddings()
+embeddings = OpenAIEmbeddings(openai_api_key=os.getenv("OPENAI_API_KEY"))
 vectorstore = FAISS.from_documents(texts, embeddings)
 
 # Crear cadena QA con modelo de OpenAI
